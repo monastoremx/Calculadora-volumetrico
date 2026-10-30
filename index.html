@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111e30">
+<title>Calculadora de peso volumétrico</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#0c1421;color:#eef3fa}*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px}main{width:min(100%,640px)}.eyebrow{color:#dbb77c;font-size:12px;letter-spacing:.15em;font-weight:700}h1{font-size:clamp(30px,6vw,44px);letter-spacing:-.04em;margin:16px 0 12px;line-height:1.1}.intro{color:#aab7ca;line-height:1.6;margin-bottom:28px}.card{background:#142136;border:1px solid #2c3c53;border-radius:24px;padding:28px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}label{display:block;font-size:14px;color:#d3dcea}.input{position:relative;margin-top:10px}input{width:100%;min-width:0;background:#0b1627;color:#fff;border:1px solid #40516a;border-radius:12px;padding:16px 39px 16px 14px;font:inherit;font-size:20px}input:focus{outline:2px solid #dbb77c;outline-offset:3px}.unit{position:absolute;right:13px;top:21px;color:#96a5b9;font-size:13px;pointer-events:none}.formula{font-size:13px;color:#aab7ca;text-align:center;margin:24px 0}.result{background:#1c3048;border-radius:16px;padding:25px;text-align:center}.result small{color:#c0cddd;display:block}.number{font-size:clamp(42px,8vw,60px);font-weight:700;letter-spacing:-.04em;margin:8px 0}.number span{font-size:20px;color:#c0cddd;letter-spacing:0}.detail{font-size:13px;color:#bdcad9;min-height:20px;overflow-wrap:anywhere}.actions{display:flex;gap:12px;margin-top:20px}button{border:1px solid #42536c;border-radius:12px;padding:14px 18px;font:inherit;font-weight:600;cursor:pointer;background:transparent;color:#fff}button:first-child{background:#dbb77c;color:#152033;border-color:#dbb77c;flex:1}button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:2px solid white;outline-offset:3px}.note{font-size:12px;line-height:1.6;color:#9baabe;margin:22px 4px 0}#status{min-height:20px;text-align:center;color:#dbb77c;font-size:13px;margin:14px 0 0}@media(max-width:480px){body{padding:18px}.card{padding:20px}.fields{gap:10px}input{padding:15px 30px 15px 10px;font-size:18px}.unit{right:9px;top:20px;font-size:11px}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">HERRAMIENTA DE ENVÍOS</div>
+<h1>El tamaño también pesa.</h1>
+<p class="intro">Calcula el peso volumétrico de tu paquete. Ingresa las medidas exteriores en centímetros.</p>
+<section class="card" aria-label="Calculadora de peso volumétrico">
+<form id="calculator" novalidate>
+<div class="fields">
+<label for="length">Largo<div class="input"><input id="length" type="text" inputmode="decimal" autocomplete="off" placeholder="40" aria-describedby="formula"><span class="unit">cm</span></div></label>
+<label for="width">Ancho<div class="input"><input id="width" type="text" inputmode="decimal" autocomplete="off" placeholder="30" aria-describedby="formula"><span class="unit">cm</span></div></label>
+<label for="height">Alto<div class="input"><input id="height" type="text" inputmode="decimal" autocomplete="off" placeholder="20" aria-describedby="formula"><span class="unit">cm</span></div></label>
+</div>
+<p class="formula" id="formula">(Largo × Ancho × Alto) ÷ 5000</p>
+<div class="result" aria-live="polite" aria-atomic="true"><small>Peso volumétrico</small><div class="number"><output id="result">—</output> <span>kg</span></div><div class="detail" id="detail">Completa las tres medidas para calcular.</div></div>
+<div class="actions"><button type="button" id="copy" disabled>Copiar resultado</button><button type="reset">Limpiar</button></div>
+<p id="status" role="status"></p>
+</form>
+</section>
+<p class="note">Divisor fijo: 5000 cm³/kg. Resultado mostrado con hasta 3 decimales; no aplica redondeos de paquetería. Confirma el divisor y las reglas de cobro de tu servicio.</p>
+</main>
+<script>
+'use strict';
+const fields=['length','width','height'].map(id=>document.getElementById(id));
+const result=document.getElementById('result'),detail=document.getElementById('detail'),copy=document.getElementById('copy'),status=document.getElementById('status');
+const format=new Intl.NumberFormat('es-MX',{maximumFractionDigits:3});
+let copyText='';
+function parseDimension(value){const clean=value.trim().replace(',','.');return /^(?:\d+(?:\.\d*)?|\.\d+)$/.test(clean)?Number(clean):NaN;}
+function calculate(){status.textContent='';const values=fields.map(f=>parseDimension(f.value));let message='';fields.forEach((f,i)=>{const invalid=f.value.trim()!==''&&(!Number.isFinite(values[i])||values[i]<=0);f.setAttribute('aria-invalid',String(invalid));});
+if(fields.some(f=>f.value.trim()===''))message='Completa las tres medidas para calcular.';
+else if(values.some(v=>!Number.isFinite(v)||v<=0))message='Usa medidas mayores que cero, sin unidades ni separadores de miles.';
+const weight=values.reduce((a,b)=>a*b,1)/5000;
+if(!message&&(!Number.isFinite(weight)||weight<=0))message='Estas medidas exceden el rango de cálculo.';
+if(message){result.textContent='—';detail.textContent=message;copy.disabled=true;copyText='';return;}
+const display=weight<.001?'< 0.001':format.format(weight);
+result.textContent=display;detail.textContent=values.map(v=>format.format(v)+' cm').join(' × ');copy.disabled=false;copyText=`${detail.textContent} ÷ 5000 = ${display} kg (peso volumétrico)`;
+}
+fields.forEach(f=>f.addEventListener('input',calculate));
+document.getElementById('calculator').addEventListener('submit',e=>e.preventDefault());
+document.getElementById('calculator').addEventListener('reset',()=>{setTimeout(()=>{calculate();fields[0].focus();},0);});
+copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(copyText);status.textContent='Resultado copiado.';}catch{status.textContent='No se pudo copiar automáticamente. Selecciona el resultado para copiarlo.';}});
+</script></body></html>
